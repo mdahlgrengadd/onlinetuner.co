@@ -19,6 +19,28 @@
 
 //controller.js
 //Interface between analyser and widgets
+
+
+
+// This table is used to pick which keys to favour in the tuning process,
+// a value of 1.0 means the tuner should favour it, 0 means it shouldn't. 
+var weights = [
+	1.0, // A ( if the the base freq is 440hz )  
+	0.0, // A#
+	0.0, // B
+	0.0, // C
+ 	0.0, // C#
+	0.0, // D
+	0.0, // D#
+	0.0, // E
+	0.0, // F
+	0.0, // F#
+	0.0, // G
+	0.0  // G#
+	];
+
+
+
 //duplicate from analyser.js
 var NOTE = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"];
 	//Compute Note from step compute from La 440hz (A4)
@@ -32,7 +54,7 @@ var NOTE = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"];
 
 
 var HelmholtzScale = [
-//	1.0000,
+	1.0000,
 	25/24,
 	9/8,
 	6/5,
@@ -49,7 +71,7 @@ var HelmholtzScale = [
 ];
 
 var EqTemperateScale = [
-//	1.0,
+	1.0,
 	Math.pow(2, 1/12),
 	Math.pow(2, 2/12),
 	Math.pow(2, 3/12),
@@ -90,7 +112,7 @@ function tonescaleArray(start, array) {
 	for (var i = 0; i < 12; i++) {
 
 		diff = array[(start+i) % array.length]
-		console.log("THEDIFF: "+diff+" - vs eq: "+Math.pow(2, 1/12))
+		//console.log("THEDIFF: "+diff+" - vs eq: "+Math.pow(2, 1/12))
 		newarr.push(diff);//diff
 	};
 	return newarr;
@@ -122,20 +144,8 @@ for (var p = 0; p < 12; p++) {
 	//console.log(Scales[p]);
 };
 
-var weights = [
-	1.0, 
-	0.0, 
-	0.0,
-	0.0,
-	0.0,
-	0.0,
-	0.0,
-	0.0,
-	0.0,
-	0.0,
-	0.0,
-	0.0
-	];
+
+
 
 function getBaseLog(x, y) {
   return Math.log(y) / Math.log(x);
@@ -170,26 +180,34 @@ Number.prototype.mod = function(n) {
     return ((this%n)+n)%n;
 };
 
-
+var lastdiff = 1;
 function pitchFromStepArray(start, array) {
 	var modstart = Number(start).mod(array.length);
 	var absval = Math.floor(start/array.length);
-	console.log("ABSVAL: "+absval);
 	var newarr = new Array();
 	var diff = 1;
 	for (var i = 0; i < modstart; i++) {
-
+		
+		console.log("modstart: "+(modstart+i) % array.length);
 		diff *= array[(modstart+i) % array.length]
 
 	};
 	console.log("diff: "+diff);
 	return diff*Math.pow(2,absval);//(Math.pow(2, diff)/2)*Math.pow(2,absval);
-0.5;
+
 }
 
 console.log(avgscale2);
+console.log("-------------------------");
+pitchFromStepArray(0, avgscale2);
 
+var pitch2 = avgscale2.slice(0,7).reduce(function(a, b) {
+				var tmp = a * b;
+			    return tmp;
+});
+console.log(pitch2);
 
+console.log("-------------------------");
 
 
 function pitcher(firstNote, range, scale, basefreq) {
@@ -199,9 +217,21 @@ function pitcher(firstNote, range, scale, basefreq) {
 
 	for (var note = firstNote; note <range; note++) {
 
+			var notekey = Number(note).mod(12);
+			var octave = Math.floor((note)/12);
 
+			//var pitch = pitchFromStepArray(note, avgscale2);
+			var pitch = 1;
+			if (notekey>0) {
+				pitch = avgscale2.slice(0,notekey).reduce(function(a, b) {
+					var tmp = a * b;
+				    return tmp;
+				});
 
-			var pitch = pitchFromStepArray(note, avgscale2);
+			}  
+			pitch = pitch*Math.pow(2,octave);
+
+			console.log("notekey="+notekey+" pitch multiplier="+pitch);
 			var eqtemp = Math.pow(2, note/12); //1.059... the equal temperament multiplier
 			var diff = (pitch-eqtemp);
 
@@ -228,23 +258,10 @@ function pitcher(firstNote, range, scale, basefreq) {
 
 
 
-/*
-var note = 2;
-var pitch = pitchFromStepArray(note, Scales[0]);
-
-console.log(pitch*440.0);
-pitch = pitchFromStepArray(note, Scales[6]);
-
-console.log(pitch*440.0);
-pitch = pitchFromStepArray(note, avgscale);
-
-console.log(pitch*440.0);
-
-*/
 
 
 (function () {
-	var res = pitcher(-36, 48, avgscale2, 440.0 );
+	var res = pitcher(-45, 28, avgscale2, 440.0 );
 	console.log(res);
     
     //Step compute from La 440 Hz
@@ -302,3 +319,5 @@ console.log(pitch*440.0);
     //Namespace declaration
     OnlineTuner.Controller = {NyckelharpaTuner : NyckelharpaTuner};
 })();
+
+
