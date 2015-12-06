@@ -67,7 +67,7 @@
 	
 	var Analyser = function(controllers, precision, highFrequency) {
 		//max frequency to analyse
-		this.highFrequency = highFrequency || 350.0;
+		this.highFrequency = highFrequency || 1700.0;
 		
 		//precision of computation
 		this.precision = precision || (4 * 16384);
@@ -102,7 +102,7 @@
 		
 		//init window for sound analyse
 		this.window = blackmanWindow(this.precision);
-		
+		//this.window = hammingWindow(this.precision);
 	};
 	
 	Analyser.prototype = {
@@ -176,8 +176,15 @@
 				var frequencies = this.getData().subarray(0, this.highFrequency / this.getError());
 				
 				//Max frequency
-		        var frequency = (frequencies.indexof(frequencies.max()) * this.getError());
-				
+				var peak = frequencies.max()
+
+
+		        if (frequencies[Math.floor(frequencies.indexof(peak)/2)] >= 0.0005) {
+		        	peak = frequencies[Math.floor(frequencies.indexof(peak)/2)];
+		        }
+		        //console.log(frequencies[Math.floor(frequencies.indexof(peak)/2)]);
+		        var frequency = frequencies.indexof(peak) * this.getError();
+		        
 		        //no sound
 		        if(frequency == 0)
 		        	//default note is 440.0

@@ -14,14 +14,23 @@
     <!-- Bootstrap Core CSS - Uses Bootswatch Flatly Theme: http://bootswatch.com/flatly/ -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link href="css/freelancer.css" rel="stylesheet">
-    
-    <script type="text/javascript" src="/js/onlinetuner.min.js"></script>
+    <script type="text/javascript" src="js/onlinetuner.js"></script>
+    <script type="text/javascript" src="js/analyser.js"></script>
+    <script type="text/javascript" src="js/mycontroller.js"></script>
+    <script type="text/javascript" src="js/widget.js"></script>
+
+    <script type="text/javascript" src="js/fft.js"></script>
 	<script type="text/javascript">
+
+
 	function start() {
+
+
+
 
 		//create viewer
 		var views = [ 
-			new OnlineTuner.Controller.GuitareTuner(new OnlineTuner.Widget.CircleWidget(OnlineTuner.$('tunerView'), '#ffffff', '#2c3e50', '#18bc9c', '#2c3e50'))
+			new OnlineTuner.Controller.NyckelharpaTuner(new OnlineTuner.Widget.CircleWidget(OnlineTuner.$('tunerView'), '#ffffff', '#2c3e50', '#18bc9c', '#2c3e50'))
 		];
 		
 		//install analyser
@@ -32,7 +41,14 @@
 		}, function(e) {
 			OnlineTuner.$('error').style.display = 'inline';
 			OnlineTuner.$('message').innerHTML = e;
+
+
+
 		});
+
+
+
+
 	}
 </script>
 </head>

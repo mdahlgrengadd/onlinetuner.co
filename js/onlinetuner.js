@@ -21,6 +21,9 @@
 //Namespace declaration
 //Global function
 
+//http://www.phy.mtu.edu/~suits/scales.html
+
+
 (function () {
 	OnlineTuner = function() {
 		this.VERSION = "1.0";
