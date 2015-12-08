@@ -23,8 +23,10 @@
 
 
 // This table is used to pick which keys to favour in the tuning process,
-// a value of 1.0 means the tuner should favour it, 0 means it shouldn't. 
-var weights = [
+// a value of 1.0 means the tuner should favour it, 0 means it shouldn't. Its
+// used in the avg_scales function. If all keys should be favored, then 
+// the values in the table should sum up to 12!!
+var weight_table1 = [
 	1.0, // A ( if the the base freq is 440hz )  
 	0.0, // A#
 	0.0, // B
@@ -39,23 +41,36 @@ var weights = [
 	0.0  // G#
 	];
 
+// This table is for the avg_scales2 function which 
+// works differently for avg_scales. avg_scales2 will
+// give exactly the equal temperament coefficient if
+// all keys are weighted equal. The avg_scales function
+// gives only an approximate.
+// Note that this table consists of percentage values, ie all 
+// values in the table should sum up to 1, not 12!!
+var weight_table2 = [
+	0/12, // A ( if the the base freq is 440hz )  
+	0/12, // A#
+	0/12, // B
+	3/12, // C
+ 	0/12, // C#
+	3/12, // D
+	0/12, // D#
+	0/12, // E
+	3/12, // F
+	0/12, // F#
+	3/12, // G
+	0/12  // G#
+	];
 
 
-//duplicate from analyser.js
-var NOTE = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"];
-	//Compute Note from step compute from La 440hz (A4)
-	var computeNote = function(step) {
-		var idx = Math.round(step) % NOTE.length;
-		if(idx < 0)
-			return NOTE[12 + idx];
-		else
-			return NOTE[idx];
-	};
 
-
+// The perfect/just intonation scale
+// i.e. every interval sounds perfect/pure, though
+// only in one key at a time. 
 var HelmholtzScale = [
 	1.0000,
-	25/24,
+	25/24,    
 	9/8,
 	6/5,
 	5/4,
@@ -70,6 +85,31 @@ var HelmholtzScale = [
 	2*(25/24)
 ];
 
+// If you divide every value in Helmholts Scale with the value before it
+// you arrive at this table... This is what the "tonestepArray" function
+// does with any custom table, but here we can precalculate since the 
+// table us known to us. Similiar precalculation can be don For the 
+// equal temperate scale as well. All values in that table would be Math.pow(2, 1/12).
+var HelmholtzPreCalcSteps = [
+25/24,  // ie. (25/24) / 1     = 1.0416666666666667, 
+27/25,  // ie. (9/8) / (25/24) = 1.0799999999999998, 
+16/15,  // ie. (6/5) / (9/8)   = 1.0666666666666667, 
+25/24,  // ie. (5/4) / (6/5)   = 1.0416666666666667, 
+16/15,  // ie. (4/3) / (5/4)   = 1.0666666666666667, 
+135/128,// ie. (45/32) / (4/3) = 1.0546875, 
+16/15,  // ie. (3/2) / (45/32) = 1.0666666666666667, 
+16/15,  // ie. (8/5) / (3/2)   = 1.0666666666666667, 
+25/24,  // ie. (5/3) / (8/5)   = 1.0416666666666667, 
+27/25,  // ie. (9/5) / (5/3)   = 1.08, 
+25/24,  // ie. (15/8) / (9/5)  = 1.0416666666666667, 
+16/15   // ie. (2) / (15/8)    = 1.0666666666666667
+];
+
+
+
+//The equal temperament scale
+//i.e. every intervall sounds equally good or 
+//bad in every in every key.
 var EqTemperateScale = [
 	1.0,
 	Math.pow(2, 1/12),
@@ -87,15 +127,53 @@ var EqTemperateScale = [
 	Math.pow(2, 13/12),
 ];
 
-console.log("EQ-Scale");
-console.log(EqTemperateScale);
-console.log("HelmholtzScale");
-console.log(HelmholtzScale);
+
+// Some observations...
+// If you divide the intervals in the HelmholtzScale (Perfect tuning) with 
+// the one before, ie (25/24) / 1 ...or... (9/8) / (25/24), then
+// only four different values will emerge, namely:
+//
+//  1.0416666666666667 (four times), 
+//  1.08 (2 times), 
+//  1.0666666666666667 (five times), 
+//  1.0546875 (once)
+//
+// these values can be written as fractions like:
+// [25/24, 27/25, 16/15, 135/128]
+//
+// The average of all those values as they appear in a complete octave
+// can be used to approximate the equal temperament ratio multiplier (EQRM).
+// EQRM is the value used to multiply a frequency to get the next frequency 
+// in the scale. The exact value is = Math.pow(2, 1/12) = 1.0594630943592953.
+//
+// So... 
+// (25/24 * 4 + 27/25 * 2 + 16/15 * 5 + 135/128) / 12 = 1.0595572916666667
+// ..is almost the same as Math.pow(2, 1/12).
+//
+// Of course multiplying all interval differencies that occurs in an octave
+// results in the octave multiplier = 2.
+// (25/24)^4 * (27/25)^2 * (16/15)^5 * 135/128 = 
+// = Math.pow(2, 1/12)^12 = 
+// = 2
+
+
+
+//duplicate from analyser.js
+var NOTE = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"];
+	//Compute Note from step compute from La 440hz (A4)
+	var computeNote = function(step) {
+		var idx = Math.round(step) % NOTE.length;
+		if(idx < 0)
+			return NOTE[12 + idx];
+		else
+			return NOTE[idx];
+	};
+
 
 // Note elision, there is no member at 2 so it isn't visited
 //HelmholtzScale.forEach(logArrayElements);
 
-function tonestepArray(array) { // array must contatin 13 indexes
+function tonestepArray(array) { 
 	var newarr = new Array();
 	var diff = 0;
 	for (var i = 0; i < 12; i++) {
@@ -107,11 +185,16 @@ function tonestepArray(array) { // array must contatin 13 indexes
 }
 
 
+//http://stackoverflow.com/questions/4467539/javascript-modulo-not-behaving
+Number.prototype.mod = function(n) {
+    return ((this%n)+n)%n;
+};
+
 function tonescaleArray(start, array) {
 	var newarr = new Array();
 	for (var i = 0; i < 12; i++) {
 
-		diff = array[(start+i) % array.length]
+		diff = array[Number(-start+i).mod(12)]
 		//console.log("THEDIFF: "+diff+" - vs eq: "+Math.pow(2, 1/12))
 		newarr.push(diff);//diff
 	};
@@ -151,14 +234,14 @@ function getBaseLog(x, y) {
   return Math.log(y) / Math.log(x);
 }
 
-function avg_scales(scales, weigths) {
-	var i; 
+function avg_scales(scales, weights) {
+	var tonestep; 
 	var average = [];
 
-	for(i = 0; i < scales[0].length; i++){
+	for(tonestep = 0; tonestep < 12; tonestep++){
 		var avg = 0;
-		for (var k = scales.length - 1; k >= 0; k--) {
-			avg += scales[k][i] * weights[k];
+		for (var keyscale = 0; keyscale < 12 ; keyscale++) {
+			avg += scales[keyscale][tonestep] * weights[keyscale];
 		};
 		var sum_of_weights = weights.reduce(function(a, b) {
 			  return a + b;
@@ -173,23 +256,51 @@ function avg_scales(scales, weigths) {
 	return average;
 }
 
-var avgscale2 = avg_scales(Scales, weights);
 
-//http://stackoverflow.com/questions/4467539/javascript-modulo-not-behaving
-Number.prototype.mod = function(n) {
-    return ((this%n)+n)%n;
-};
+function avg_scales2(scales, weights) {
+	var tonestep; 
+	var average = [];
 
-var lastdiff = 1;
+	for(tonestep = 0; tonestep < 12; tonestep++){
+		var avg = 1;
+		for (var keyscale = 0; keyscale < 12 ; keyscale++) {
+			// Since all pitch intervals are multiplied with eachother, 
+			// this makes sure a weight of 0 will result in that 
+			// the average will be the same, ie...
+			// 1 / (Math.pow( x , 1-1)/ x ) = x
+			// 1 / (Math.pow( x , 1-0)/ x ) = 1
+			var x = scales[keyscale][tonestep];
+			avg *= 1 / (Math.pow(x, 1-weights[keyscale])/x);
+
+		};
+		var sum_of_weights = weights.reduce(function(a, b) {
+			  return a + b;
+		});
+
+		console.log("AVG1="+avg);
+		avg = (avg * Math.pow(2, (12/sum_of_weights)/12) )/2;
+		average.push(avg);
+		console.log("AVG2="+avg);
+		console.log(sum_of_weights);
+	}
+	return average;
+}
+
+
+
+var avgscale2 = avg_scales2(Scales, weight_table2);
+
+
+
 function pitchFromStepArray(start, array) {
-	var modstart = Number(start).mod(array.length);
-	var absval = Math.floor(start/array.length);
+	var modstart = Number(start).mod(12);
+	var absval = Math.floor(start/12);
 	var newarr = new Array();
 	var diff = 1;
 	for (var i = 0; i < modstart; i++) {
 		
-		console.log("modstart: "+(modstart+i) % array.length);
-		diff *= array[(modstart+i) % array.length]
+		console.log("modstart: "+(modstart+i) % 12);
+		diff *= array[(modstart+i) % 12]
 
 	};
 	console.log("diff: "+diff);
@@ -210,6 +321,61 @@ console.log(pitch2);
 console.log("-------------------------");
 
 
+
+
+//http://steelguitarforum.com/Forum11/HTML/009148.html
+function hertzDifftoCents(freq1, freq2) {
+/*
+	The approximate conversion factor 4 is based on differences from a center frequency of about 440 Hz. It's different for different center frequencies. One can compute Cents change in going from frequency f0 to frequency f1 using logarithms in the following formula:
+Cents = K*(log(f1)-log(f0))
+
+where 1200 = K*log(2)
+
+If one uses common logarithms (base 10), this constant comes out to
+
+K = 1200/log10(2) or approximately 3986.3
+
+So, using 440 as the center frequency, f0, then the number of Cents change going to 441 Hz is
+
+Cents(440-to-441) = 3986.3*(log10(441)-log10(440))
+
+or about 3.93 Cents.
+
+Here's a table of Cents difference for some frequencies around 440 Hz:
+
+435 Hz: -19.78 Cents
+436 Hz: -15.81 Cents
+437 Hz: -11.84 Cents
+438 Hz: -7.89 Cents
+439 Hz: -3.94 Cents
+440 Hz: 0 Cents
+441 Hz: +3.93 Cents
+442 Hz: +7.85 Cents
+443 Hz: +11.76 Cents
+444 Hz: +15.67 Cents
+445 Hz: +19.56 Cents
+
+So, the conversion factor 4 Cents/Hz is just fine for our purposes of tuning around 440 Hz.
+
+But note that this conversion factor is not constant - for example, for a center frequency one octave lower, 220 Hz, the factor doubles:
+
+3986.3*(log10(221)-log10(220)) or about 7.85
+
+Similarly, for a center frequency one octave higher, the factor is cut in half:
+
+3986.3*(log10(881)-log10(880)) or about 1.97
+	
+
+*/
+
+		return 3986.3*(Math.log10(freq1)-Math.log10(freq2));
+}
+
+
+
+
+
+
 function pitcher(firstNote, range, scale, basefreq) {
 	var initialNoteFreq = 440.0 ;// Low A
 				var myStepArray = new Array();
@@ -222,32 +388,47 @@ function pitcher(firstNote, range, scale, basefreq) {
 
 			//var pitch = pitchFromStepArray(note, avgscale2);
 			var pitch = 1;
+			var truepitch = 1; //used for comparison
+
 			if (notekey>0) {
 				pitch = avgscale2.slice(0,notekey).reduce(function(a, b) {
 					var tmp = a * b;
 				    return tmp;
 				});
 
+				truepitch = helmholtzSteps.slice(0,notekey).reduce(function(a, b) {
+					var tmp = a * b;
+				    return tmp;
+				});
+
+
 			}  
-			pitch = pitch*Math.pow(2,octave);
 
 			console.log("notekey="+notekey+" pitch multiplier="+pitch);
+			pitch = pitch*Math.pow(2,octave);
+			truepitch = truepitch*Math.pow(2,octave);
+			var difftp = (pitch-truepitch);
+
+			
 			var eqtemp = Math.pow(2, note/12); //1.059... the equal temperament multiplier
-			var diff = (pitch-eqtemp);
+			var diffeq = (pitch-eqtemp);
 
 
 
-			myStepArray.push((note+diff*12));
+			myStepArray.push((note+diffeq*12));
 			myNoteArray.push(computeNote(note));
 
 
 
 			//rounding for print
 			pitch = Math.round(pitch*initialNoteFreq * 100) / 100;
+			truepitch = Math.round(truepitch*initialNoteFreq * 100) / 100;
 			eqtemp = Math.round(eqtemp*initialNoteFreq * 100) / 100;
-			diff = Math.round(diff*initialNoteFreq * 100) / 100;
-
-			console.log("note: "+computeNote(note)+" - "+pitch+" Hz / + "+eqtemp+" ("+diff+")");
+			diffeq = Math.round(diffeq*initialNoteFreq * 100) / 100;
+			difftp = Math.round(difftp*initialNoteFreq * 100) / 100;
+			centsFromPerfectPitch = Math.round(hertzDifftoCents(truepitch, pitch)*100)/100;
+			centsFromEQPitch = Math.round(hertzDifftoCents(eqtemp, pitch)*100)/100;
+			console.log("note: "+computeNote(note)+" - "+pitch+" Hz / + "+truepitch+" ("+difftp+" / "+centsFromPerfectPitch+" cents ) - equaltemp: "+eqtemp + "(" + diffeq + " / "+centsFromEQPitch+" cents)");
 
 
 
