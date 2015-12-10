@@ -50,7 +50,7 @@ var weight_table1 = [
 // values in the table should sum up to 1, not 12!!
 
 var weight_table2 = [
-	0.0/12, // A ( if the the base freq is 440hz )  
+	12.0/12, // A ( if the the base freq is 440hz )  
 	0.0/12, // A#
 	0.0/12, // B
 	0.0/12, // C *
@@ -59,7 +59,7 @@ var weight_table2 = [
 	0.0/12, // D#
 	0.0/12, // E
 	0.0/12, // F *
-	12.0/12, // F#
+	0.0/12, // F#
 	0.0/12, // G *
 	0.0/12  // G#
 	];
